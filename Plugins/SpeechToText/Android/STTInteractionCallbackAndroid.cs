@@ -14,16 +14,19 @@ namespace SpeechToTextNamespace
 			callbackHelper = new GameObject( "STTCallbackHelper" ).AddComponent<STTCallbackHelper>();
 		}
 
+		[UnityEngine.Scripting.Preserve]
 		public void OnReadyForSpeech()
 		{
 			callbackHelper.CallOnMainThread( listener.OnReadyForSpeech );
 		}
 
+		[UnityEngine.Scripting.Preserve]
 		public void OnBeginningOfSpeech()
 		{
 			callbackHelper.CallOnMainThread( listener.OnBeginningOfSpeech );
 		}
 
+		[UnityEngine.Scripting.Preserve]
 		/// <param name="rmsdB">Root Mean Square (RMS) dB between range [-2, 10] (-2: quiet, 10: loud)</param>
 		public void OnVoiceLevelChanged( float rmsdB )
 		{
@@ -32,12 +35,14 @@ namespace SpeechToTextNamespace
 			callbackHelper.CallOnMainThread( () => listener.OnVoiceLevelChanged( normalizedVoiceLevel ) );
 		}
 
+		[UnityEngine.Scripting.Preserve]
 		public void OnPartialResultReceived( string spokenText )
 		{
 			if( !string.IsNullOrEmpty( spokenText ) )
 				callbackHelper.CallOnMainThread( () => listener.OnPartialResultReceived( spokenText ) );
 		}
 
+		[UnityEngine.Scripting.Preserve]
 		public void OnResultReceived( string spokenText, int errorCode )
 		{
 			// ERROR_NO_MATCH (7) error code is thrown instead of ERROR_SPEECH_TIMEOUT (6) if the user doesn't speak. ERROR_NO_MATCH is also

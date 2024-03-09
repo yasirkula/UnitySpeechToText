@@ -15,6 +15,7 @@ namespace SpeechToTextNamespace
 			this.threadLock = threadLock;
 		}
 
+		[UnityEngine.Scripting.Preserve]
 		public void OnPermissionResult( int result )
 		{
 			Result = result;
@@ -37,6 +38,7 @@ namespace SpeechToTextNamespace
 			callbackHelper = new GameObject( "STTCallbackHelper" ).AddComponent<STTCallbackHelper>().AutoDestroy();
 		}
 
+		[UnityEngine.Scripting.Preserve]
 		public void OnPermissionResult( int result )
 		{
 			callbackHelper.CallOnMainThread( () => callback( (SpeechToText.Permission) result ) );

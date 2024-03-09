@@ -21,6 +21,7 @@ namespace SpeechToTextNamespace
 			instance.callback = callback;
 		}
 
+		[UnityEngine.Scripting.Preserve]
 		public void OnPermissionRequested( string message )
 		{
 			SpeechToText.PermissionCallback _callback = callback;

@@ -57,6 +57,7 @@ namespace SpeechToTextNamespace
 			voiceLevelChangeDetectionCoroutine = null;
 		}
 
+		[UnityEngine.Scripting.Preserve]
 		/// <param name="rmsdB">Root Mean Square (RMS) dB between range [0, 160] (0: quiet, 160: loud)</param>
 		public void OnVoiceLevelChanged( float rmsdB )
 		{
@@ -65,6 +66,7 @@ namespace SpeechToTextNamespace
 				listener.OnVoiceLevelChanged( Mathf.Clamp01( ( rmsdB - 130f ) / 20f ) );
 		}
 
+		[UnityEngine.Scripting.Preserve]
 		public void OnPartialResultReceived( string spokenText )
 		{
 			if( listener != null )
@@ -81,6 +83,7 @@ namespace SpeechToTextNamespace
 			}
 		}
 
+		[UnityEngine.Scripting.Preserve]
 		public void OnResultReceived( string spokenText )
 		{
 			ISpeechToTextListener _listener = listener;
@@ -90,6 +93,7 @@ namespace SpeechToTextNamespace
 				_listener.OnResultReceived( !string.IsNullOrEmpty( spokenText ) ? spokenText : null, null );
 		}
 
+		[UnityEngine.Scripting.Preserve]
 		public void OnError( string error )
 		{
 			ISpeechToTextListener _listener = listener;
