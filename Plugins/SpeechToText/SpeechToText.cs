@@ -102,7 +102,7 @@ public static class SpeechToText
 	private static extern int _SpeechToText_CheckPermission();
 
 	[System.Runtime.InteropServices.DllImport( "__Internal" )]
-	private static extern int _SpeechToText_RequestPermission( int asyncMode );
+	private static extern void _SpeechToText_RequestPermission();
 
 	[System.Runtime.InteropServices.DllImport( "__Internal" )]
 	private static extern void _SpeechToText_OpenSettings();
@@ -207,7 +207,7 @@ public static class SpeechToText
 		AJC.CallStatic<bool>( "RequestPermission", Context, nativeCallback );
 #elif !UNITY_EDITOR && UNITY_IOS
 		STTPermissionCallbackiOS.Initialize( callback );
-		_SpeechToText_RequestPermission( 1 );
+		_SpeechToText_RequestPermission();
 #else
 		callback( Permission.Granted );
 #endif

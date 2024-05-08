@@ -13,7 +13,7 @@
 + (int)isBusy;
 + (float)getAudioRmsdB;
 + (int)checkPermission;
-+ (int)requestPermission:(BOOL)asyncMode;
++ (int)requestPermission;
 + (void)openSettings;
 @end
 
@@ -56,7 +56,7 @@ static float audioRmsdB;
 
 + (int)start:(BOOL)useFreeFormLanguageModel preferOfflineRecognition:(BOOL)preferOfflineRecognition
 {
-	if( [self isServiceAvailable:preferOfflineRecognition] == 0 || [self isBusy] == 1 || [self requestPermission:YES] != 1 )
+	if( [self isServiceAvailable:preferOfflineRecognition] == 0 || [self isBusy] == 1 || [self requestPermission] != 1 )
 		return 0;
 	
 	// Cancel the previous task if it's running
@@ -238,66 +238,95 @@ static float audioRmsdB;
 	return audioRmsdB;
 }
 
-// Credit: https://stackoverflow.com/a/20464727/2373034
 + (int)checkPermission
 {
 	if( @available(iOS 10.0, *) )
 	{
-		SFSpeechRecognizerAuthorizationStatus status = [SFSpeechRecognizer authorizationStatus];
-		if( status == SFSpeechRecognizerAuthorizationStatusAuthorized )
+		int speechRecognitionPermission = [self checkSpeechRecognitionPermission];
+		int microphonePermission = [self checkMicrophonePermission];
+		if( speechRecognitionPermission == 1 && microphonePermission == 1 )
 			return 1;
-		else if( status == SFSpeechRecognizerAuthorizationStatusNotDetermined )
+		else if( speechRecognitionPermission != 0 && microphonePermission != 0 )
 			return 2;
 	}
 	
 	return 0;
 }
 
-+ (int)requestPermission:(BOOL)asyncMode
++ (int)checkSpeechRecognitionPermission
 {
-	int result = [self requestPermissionInternal:asyncMode];
-	if( asyncMode && result >= 0 ) // Result returned immediately, forward it
+	SFSpeechRecognizerAuthorizationStatus status = [SFSpeechRecognizer authorizationStatus];
+	if( status == SFSpeechRecognizerAuthorizationStatusAuthorized )
+		return 1;
+	else if( status == SFSpeechRecognizerAuthorizationStatusNotDetermined )
+		return 2;
+	else
+		return 0;
+}
+
++ (int)checkMicrophonePermission
+{
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 170000
+	if( @available(iOS 17.0, *) )
+	{
+		AVAudioApplicationRecordPermission status = [[AVAudioApplication sharedInstance] recordPermission];
+		if( status == AVAudioApplicationRecordPermissionGranted )
+			return 1;
+		else if( status == AVAudioApplicationRecordPermissionUndetermined )
+			return 2;
+	}
+	else
+#endif
+	{
+		AVAudioSessionRecordPermission status = [[AVAudioSession sharedInstance] recordPermission];
+		if( status == AVAudioSessionRecordPermissionGranted )
+			return 1;
+		else if( status == AVAudioSessionRecordPermissionUndetermined )
+			return 2;
+	}
+
+	return 0;
+}
+
++ (int)requestPermission
+{
+	int result = [self requestPermissionInternal];
+	if( result >= 0 ) // Result returned immediately, forward it
 		UnitySendMessage( "STTPermissionCallbackiOS", "OnPermissionRequested", [self getCString:[NSString stringWithFormat:@"%d", result]] );
 		
 	return result;
 }
 
-+ (int)requestPermissionInternal:(BOOL)asyncMode
++ (int)requestPermissionInternal
 {
 	int currentPermission = [self checkPermission];
 	if( currentPermission != 2 )
 		return currentPermission;
 	
-	SFSpeechRecognizerAuthorizationStatus status = [SFSpeechRecognizer authorizationStatus];
-	if( status == SFSpeechRecognizerAuthorizationStatusAuthorized )
-		return 1;
-	else if( status == SFSpeechRecognizerAuthorizationStatusNotDetermined )
+	// Request Speech Recognition permission first
+	[SFSpeechRecognizer requestAuthorization:^( SFSpeechRecognizerAuthorizationStatus status )
 	{
-		if( asyncMode )
+		// Request Microphone permission immediately afterwards
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 170000
+		// For some reason, requestRecordPermissionWithCompletionHandler function couldn't be found in AVAudioApplication while writing this code. Uncomment when it's fixed by Apple.
+		/*if( @available(iOS 17.0, *) )
 		{
-			[SFSpeechRecognizer requestAuthorization:^( SFSpeechRecognizerAuthorizationStatus status )
+			[[AVAudioApplication sharedInstance] requestRecordPermissionWithCompletionHandler:^( BOOL granted )
 			{
-				UnitySendMessage( "STTPermissionCallbackiOS", "OnPermissionRequested", ( status == SFSpeechRecognizerAuthorizationStatusAuthorized ) ? "1" : "0" );
+				UnitySendMessage( "STTPermissionCallbackiOS", "OnPermissionRequested", ( granted &&  status == SFSpeechRecognizerAuthorizationStatusAuthorized ) ? "1" : "0" );
 			}];
-			
-			return -1;
 		}
-		else
+		else*/
+#endif
 		{
-			__block BOOL authorized = NO;
-			dispatch_semaphore_t sema = dispatch_semaphore_create( 0 );
-			[SFSpeechRecognizer requestAuthorization:^( SFSpeechRecognizerAuthorizationStatus status )
+			[[AVAudioSession sharedInstance] requestRecordPermission:^( BOOL granted )
 			{
-				authorized = ( status == SFSpeechRecognizerAuthorizationStatusAuthorized );
-				dispatch_semaphore_signal( sema );
+				UnitySendMessage( "STTPermissionCallbackiOS", "OnPermissionRequested", ( granted &&  status == SFSpeechRecognizerAuthorizationStatusAuthorized ) ? "1" : "0" );
 			}];
-			dispatch_semaphore_wait( sema, DISPATCH_TIME_FOREVER );
-			
-			return authorized ? 1 : 0;
 		}
-	}
+	}];
 	
-	return 0;
+	return -1;
 }
 
 #pragma clang diagnostic push
@@ -376,9 +405,9 @@ extern "C" int _SpeechToText_CheckPermission()
 	return [USpeechToText checkPermission];
 }
 
-extern "C" int _SpeechToText_RequestPermission( int asyncMode )
+extern "C" void _SpeechToText_RequestPermission()
 {
-	return [USpeechToText requestPermission:( asyncMode == 1 )];
+	[USpeechToText requestPermission];
 }
 
 extern "C" void _SpeechToText_OpenSettings()
