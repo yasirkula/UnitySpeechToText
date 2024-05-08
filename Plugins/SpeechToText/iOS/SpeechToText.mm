@@ -3,8 +3,6 @@
 #import <Accelerate/Accelerate.h>
 #import <Speech/Speech.h>
 
-#define CHECK_IOS_VERSION( version )  ([[[UIDevice currentDevice] systemVersion] compare:version options:NSNumericSearch] != NSOrderedAscending)
-
 @interface USpeechToText:NSObject
 + (int)initialize:(NSString *)language;
 + (int)start:(BOOL)useFreeFormLanguageModel preferOfflineRecognition:(BOOL)preferOfflineRecognition;
@@ -33,7 +31,12 @@ static float audioRmsdB;
 
 + (int)initialize:(NSString *)language
 {
-	if( !CHECK_IOS_VERSION( @"10.0" ) || [self isBusy] == 1 )
+	if( @available(iOS 10.0, *) )
+	{
+		if( [self isBusy] == 1 )
+			return 0;
+	}
+	else
 		return 0;
 	
 	if( speechRecognizerLanguage == nil || ![speechRecognizerLanguage isEqualToString:language] )
@@ -170,7 +173,7 @@ static float audioRmsdB;
 
 + (void)stop
 {
-	if( CHECK_IOS_VERSION( @"10.0" ) && audioEngine != nil && audioEngine.isRunning )
+	if( @available(iOS 10.0, *) && audioEngine != nil && audioEngine.isRunning )
 	{
 		[audioEngine stop];
 		[recognitionRequest endAudio];
@@ -179,7 +182,7 @@ static float audioRmsdB;
 
 + (void)cancel:(BOOL)isCanceledByUser
 {
-	if( CHECK_IOS_VERSION( @"10.0" ) && recognitionTask != nil )
+	if( @available(iOS 10.0, *) && recognitionTask != nil )
 	{
 		if( isCanceledByUser )
 			recognitionTaskErrorCode = 0;
@@ -191,17 +194,17 @@ static float audioRmsdB;
 
 + (int)isLanguageSupported:(NSString *)language
 {
-	return ( CHECK_IOS_VERSION( @"10.0" ) && [[SFSpeechRecognizer supportedLocales] containsObject:[NSLocale localeWithLocaleIdentifier:[language stringByReplacingOccurrencesOfString:@"-" withString:@"_"]]] ) ? 1 : 0;
+	return ( @available(iOS 10.0, *) && [[SFSpeechRecognizer supportedLocales] containsObject:[NSLocale localeWithLocaleIdentifier:[language stringByReplacingOccurrencesOfString:@"-" withString:@"_"]]] ) ? 1 : 0;
 }
 
 + (int)isServiceAvailable:(BOOL)preferOfflineRecognition
 {
-	if( CHECK_IOS_VERSION( @"10.0" ) && speechRecognizer != nil && [speechRecognizer isAvailable] )
+	if( @available(iOS 10.0, *) && speechRecognizer != nil && [speechRecognizer isAvailable] )
 	{
 		if( !preferOfflineRecognition )
 			return 1;
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 130000
-		else if( CHECK_IOS_VERSION( @"13.0" ) && [speechRecognizer supportsOnDeviceRecognition] )
+		else if( @available(iOS 13.0, *) && [speechRecognizer supportsOnDeviceRecognition] )
 			return 1;
 #endif
 	}
@@ -211,7 +214,7 @@ static float audioRmsdB;
 
 + (int)isBusy
 {
-	return ( CHECK_IOS_VERSION( @"10.0" ) && recognitionRequest != nil ) ? 1 : 0;
+	return ( @available(iOS 10.0, *) && recognitionRequest != nil ) ? 1 : 0;
 }
 
 + (float)getAudioRmsdB
@@ -222,7 +225,7 @@ static float audioRmsdB;
 // Credit: https://stackoverflow.com/a/20464727/2373034
 + (int)checkPermission
 {
-	if( CHECK_IOS_VERSION( @"10.0" ) )
+	if( @available(iOS 10.0, *) )
 	{
 		SFSpeechRecognizerAuthorizationStatus status = [SFSpeechRecognizer authorizationStatus];
 		if( status == SFSpeechRecognizerAuthorizationStatusAuthorized )
@@ -245,8 +248,9 @@ static float audioRmsdB;
 
 + (int)requestPermissionInternal:(BOOL)asyncMode
 {
-	if( !CHECK_IOS_VERSION( @"10.0" ) )
-		return 0;
+	int currentPermission = [self checkPermission];
+	if( currentPermission != 2 )
+		return currentPermission;
 	
 	SFSpeechRecognizerAuthorizationStatus status = [SFSpeechRecognizer authorizationStatus];
 	if( status == SFSpeechRecognizerAuthorizationStatusAuthorized )
@@ -287,7 +291,7 @@ static float audioRmsdB;
 	if( &UIApplicationOpenSettingsURLString != NULL )
 	{
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 100000
-		if( CHECK_IOS_VERSION( @"10.0" ) )
+		if( @available(iOS 10.0, *) )
 			[[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString] options:@{} completionHandler:nil];
 		else
 #endif
