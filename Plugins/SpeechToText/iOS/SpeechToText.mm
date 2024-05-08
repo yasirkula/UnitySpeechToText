@@ -88,7 +88,7 @@ static float audioRmsdB;
 	speechRecognizer.defaultTaskHint = useFreeFormLanguageModel ? SFSpeechRecognitionTaskHintDictation : SFSpeechRecognitionTaskHintSearch;
 	recognitionRequest.shouldReportPartialResults = YES;
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 130000
-	if( preferOfflineRecognition )
+	if( @available(iOS 13.0, *) && preferOfflineRecognition )
 		recognitionRequest.requiresOnDeviceRecognition = YES;
 #endif
 	
