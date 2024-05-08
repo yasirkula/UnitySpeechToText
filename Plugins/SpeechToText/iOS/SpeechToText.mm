@@ -62,6 +62,11 @@ static float audioRmsdB;
 	// Cancel the previous task if it's running
 	[self cancel:NO];
 	
+	// Cache the current AVAudioSession settings so that they can be restored after the microphone session
+	AVAudioSessionCategory unityAudioSessionCategory = [[AVAudioSession sharedInstance] category];
+	NSUInteger unityAudioSessionCategoryOptions = [[AVAudioSession sharedInstance] categoryOptions];
+	AVAudioSessionMode unityAudioSessionMode = [[AVAudioSession sharedInstance] mode];
+	
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
 	[audioSession setCategory:AVAudioSessionCategoryRecord mode:AVAudioSessionModeMeasurement options:AVAudioSessionCategoryOptionDuckOthers error:nil];
 	[audioSession setActive:YES withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:nil];
@@ -123,6 +128,17 @@ static float audioRmsdB;
 			
 			recognitionRequest = nil;
 			recognitionTask = nil;
+			
+			// Try restoring AVAudioSession settings back to their initial values
+			NSError *error = nil;
+			if( ![[AVAudioSession sharedInstance] setCategory:unityAudioSessionCategory mode:unityAudioSessionMode options:unityAudioSessionCategoryOptions error:&error] )
+			{
+				NSLog( @"SpeechToText error (1) setting audio session category back to %@ with mode %@ and options %lu: %@", unityAudioSessionCategory, unityAudioSessionMode, (unsigned long) unityAudioSessionCategoryOptions, error );
+				
+				// It somehow failed. Try restoring AVAudioSession settings back to Unity's default values
+				if( ![[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient mode:AVAudioSessionModeDefault options:1 error:&error] )
+					NSLog( @"SpeechToText error (2) setting audio session category back to %@ with mode %@ and options %lu: %@", unityAudioSessionCategory, unityAudioSessionMode, (unsigned long) unityAudioSessionCategoryOptions, error );
+			}
 		}
 		else
 		{
