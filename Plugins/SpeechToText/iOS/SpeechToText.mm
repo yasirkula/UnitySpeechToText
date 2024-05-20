@@ -48,7 +48,7 @@ static float audioRmsdB;
 		if( language == nil || [language length] == 0 )
 			speechRecognizer = [[SFSpeechRecognizer alloc] init];
 		else
-			speechRecognizer = [[SFSpeechRecognizer alloc] initWithLocale:[NSLocale localeWithLocaleIdentifier:[language stringByReplacingOccurrencesOfString:@"-" withString:@"_"]]];
+			speechRecognizer = [[SFSpeechRecognizer alloc] initWithLocale:[NSLocale localeWithLocaleIdentifier:language]];
 	}
 	
 	return ( speechRecognizer != nil ) ? 1 : 0;
@@ -93,8 +93,11 @@ static float audioRmsdB;
 	speechRecognizer.defaultTaskHint = useFreeFormLanguageModel ? SFSpeechRecognitionTaskHintDictation : SFSpeechRecognitionTaskHintSearch;
 	recognitionRequest.shouldReportPartialResults = YES;
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 130000
-	if( @available(iOS 13.0, *) && preferOfflineRecognition )
-		recognitionRequest.requiresOnDeviceRecognition = YES;
+	if( @available(iOS 13.0, *) )
+	{
+		if( preferOfflineRecognition )
+			recognitionRequest.requiresOnDeviceRecognition = YES;
+	}
 #endif
 	
 	recognitionTaskErrorCode = 5;
@@ -189,40 +192,52 @@ static float audioRmsdB;
 
 + (void)stop
 {
-	if( @available(iOS 10.0, *) && audioEngine != nil && audioEngine.isRunning )
+	if( @available(iOS 10.0, *) )
 	{
-		[audioEngine stop];
-		[recognitionRequest endAudio];
+		if( audioEngine != nil && audioEngine.isRunning )
+		{
+			[audioEngine stop];
+			[recognitionRequest endAudio];
+		}
 	}
 }
 
 + (void)cancel:(BOOL)isCanceledByUser
 {
-	if( @available(iOS 10.0, *) && recognitionTask != nil )
+	if( @available(iOS 10.0, *) )
 	{
-		if( isCanceledByUser )
-			recognitionTaskErrorCode = 0;
-		
-		[recognitionTask cancel];
-		recognitionTask = nil;
+		if( recognitionTask != nil )
+		{
+			if( isCanceledByUser )
+				recognitionTaskErrorCode = 0;
+			
+			[recognitionTask cancel];
+			recognitionTask = nil;
+		}
 	}
 }
 
 + (int)isLanguageSupported:(NSString *)language
 {
-	return ( @available(iOS 10.0, *) && [[SFSpeechRecognizer supportedLocales] containsObject:[NSLocale localeWithLocaleIdentifier:[language stringByReplacingOccurrencesOfString:@"-" withString:@"_"]]] ) ? 1 : 0;
+	if( @available(iOS 10.0, *) )
+		return [[SFSpeechRecognizer supportedLocales] containsObject:[NSLocale localeWithLocaleIdentifier:language]] ? 1 : 0;
+	
+	return 0;
 }
 
 + (int)isServiceAvailable:(BOOL)preferOfflineRecognition
 {
-	if( @available(iOS 10.0, *) && speechRecognizer != nil && [speechRecognizer isAvailable] )
+	if( @available(iOS 10.0, *) )
 	{
-		if( !preferOfflineRecognition )
-			return 1;
+		if( speechRecognizer != nil && [speechRecognizer isAvailable] )
+		{
+			if( !preferOfflineRecognition )
+				return 1;
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 130000
-		else if( @available(iOS 13.0, *) && [speechRecognizer supportsOnDeviceRecognition] )
-			return 1;
+			else if( @available(iOS 13.0, *) )
+				return [speechRecognizer supportsOnDeviceRecognition] ? 1 : 0;
 #endif
+		}
 	}
 	
 	return 0;
@@ -230,7 +245,10 @@ static float audioRmsdB;
 
 + (int)isBusy
 {
-	return ( @available(iOS 10.0, *) && recognitionRequest != nil ) ? 1 : 0;
+	if( @available(iOS 10.0, *) )
+		return ( recognitionRequest != nil ) ? 1 : 0;
+	
+	return 0;
 }
 
 + (float)getAudioRmsdB
@@ -290,18 +308,12 @@ static float audioRmsdB;
 
 + (int)requestPermission
 {
-	int result = [self requestPermissionInternal];
-	if( result >= 0 ) // Result returned immediately, forward it
-		UnitySendMessage( "STTPermissionCallbackiOS", "OnPermissionRequested", [self getCString:[NSString stringWithFormat:@"%d", result]] );
-		
-	return result;
-}
-
-+ (int)requestPermissionInternal
-{
 	int currentPermission = [self checkPermission];
 	if( currentPermission != 2 )
+	{
+		UnitySendMessage( "STTPermissionCallbackiOS", "OnPermissionRequested", [self getCString:[NSString stringWithFormat:@"%d", currentPermission]] );
 		return currentPermission;
+	}
 	
 	// Request Speech Recognition permission first
 	[SFSpeechRecognizer requestAuthorization:^( SFSpeechRecognizerAuthorizationStatus status )
@@ -333,15 +345,12 @@ static float audioRmsdB;
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 + (void)openSettings
 {
-	if( &UIApplicationOpenSettingsURLString != NULL )
-	{
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 100000
-		if( @available(iOS 10.0, *) )
-			[[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString] options:@{} completionHandler:nil];
-		else
+	if( @available(iOS 10.0, *) )
+		[[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString] options:@{} completionHandler:nil];
+	else
 #endif
-			[[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
-	}
+		[[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
 }
 #pragma clang diagnostic pop
 
