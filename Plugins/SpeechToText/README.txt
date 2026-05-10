@@ -1,4 +1,4 @@
-= Speech to Text for Android & iOS (v1.1.1) =
+= Speech to Text for Android & iOS (v1.1.2) =
 
 Documentation: https://github.com/yasirkula/UnitySpeechToText
 Example code: https://github.com/yasirkula/UnitySpeechToText#example-code

@@ -1,7 +1,5 @@
 ﻿using UnityEngine;
-#if UNITY_2018_4_OR_NEWER && !SPEECH_TO_TEXT_DISABLE_ASYNC_FUNCTIONS
 using System.Threading.Tasks;
-#endif
 #if UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS
 using SpeechToTextNamespace;
 #endif
@@ -203,7 +201,7 @@ public static class SpeechToText
 	public static void RequestPermissionAsync( PermissionCallback callback )
 	{
 #if !UNITY_EDITOR && UNITY_ANDROID
-		STTPermissionCallbackAsyncAndroid nativeCallback = new STTPermissionCallbackAsyncAndroid( callback );
+		STTPermissionCallbackAndroid nativeCallback = new( callback );
 		AJC.CallStatic<bool>( "RequestPermission", Context, nativeCallback );
 #elif !UNITY_EDITOR && UNITY_IOS
 		STTPermissionCallbackiOS.Initialize( callback );
@@ -213,7 +211,6 @@ public static class SpeechToText
 #endif
 	}
 
-#if UNITY_2018_4_OR_NEWER && !SPEECH_TO_TEXT_DISABLE_ASYNC_FUNCTIONS
 	/// <inheritdoc cref="RequestPermissionAsync(PermissionCallback)"/>
 	public static Task<Permission> RequestPermissionAsync()
 	{
@@ -221,7 +218,6 @@ public static class SpeechToText
 		RequestPermissionAsync( ( permission ) => tcs.SetResult( permission ) );
 		return tcs.Task;
 	}
-#endif
 
 	/// <summary>
 	/// Opens the app's Settings from where the user can grant the necessary permissions manually
@@ -277,7 +273,7 @@ public static class SpeechToText
 		return false;
 #elif UNITY_EDITOR
 		speechSessionEmulatorListener = listener;
-		speechSessionEmulator = new GameObject( "SpeechToText Emulator" ).AddComponent<STTCallbackHelper>();
+		speechSessionEmulator = STTCallbackHelper.Create( false );
 		speechSessionEmulator.StartCoroutine( EmulateSpeechOnEditor() );
 
 		return true;

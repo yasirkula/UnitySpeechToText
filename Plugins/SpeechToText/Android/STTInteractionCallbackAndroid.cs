@@ -11,7 +11,7 @@ namespace SpeechToTextNamespace
 		public STTInteractionCallbackAndroid( ISpeechToTextListener listener ) : base( "com.yasirkula.unity.SpeechToTextListener" )
 		{
 			this.listener = listener;
-			callbackHelper = new GameObject( "STTCallbackHelper" ).AddComponent<STTCallbackHelper>();
+			callbackHelper = STTCallbackHelper.Create( false );
 		}
 
 		[UnityEngine.Scripting.Preserve]

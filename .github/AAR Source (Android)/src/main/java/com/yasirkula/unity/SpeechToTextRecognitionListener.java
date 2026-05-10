@@ -25,7 +25,11 @@ public class SpeechToTextRecognitionListener implements RecognitionListener
 		{
 			isResultSent = true;
 			unityInterface.OnResultReceived( result, errorCode );
+
+			Log.d( "Unity", "SpeechToText.SendResult (" + errorCode + "): " + result );
 		}
+		else
+			Log.w( "Unity", "SpeechToText.SendResult is called but the result is already sent (" + errorCode + "): " + result );
 	}
 
 	public boolean IsFinished()
@@ -43,6 +47,8 @@ public class SpeechToTextRecognitionListener implements RecognitionListener
 	{
 		if( !isResultSent )
 			unityInterface.OnReadyForSpeech();
+		else
+			Log.w( "Unity", "SpeechToText.onReadyForSpeech is called but the result is already sent!" );
 	}
 
 	@Override
@@ -50,6 +56,8 @@ public class SpeechToTextRecognitionListener implements RecognitionListener
 	{
 		if( !isResultSent )
 			unityInterface.OnBeginningOfSpeech();
+		else
+			Log.w( "Unity", "SpeechToText.onBeginningOfSpeech is called but the result is already sent!" );
 	}
 
 	@Override
@@ -63,6 +71,8 @@ public class SpeechToTextRecognitionListener implements RecognitionListener
 	{
 		if( !isResultSent )
 			unityInterface.OnPartialResultReceived( GetMostPromisingResult( partialResults ) );
+		else
+			Log.w( "Unity", "SpeechToText.onPartialResults is called but the result is already sent!" );
 	}
 
 	private String GetMostPromisingResult( Bundle resultsBundle )

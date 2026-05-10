@@ -31,12 +31,7 @@ static float audioRmsdB;
 
 + (int)initialize:(NSString *)language
 {
-	if( @available(iOS 10.0, *) )
-	{
-		if( [self isBusy] == 1 )
-			return 0;
-	}
-	else
+	if( [self isBusy] == 1 )
 		return 0;
 	
 	if( speechRecognizerLanguage == nil || ![speechRecognizerLanguage isEqualToString:language] )
@@ -92,13 +87,11 @@ static float audioRmsdB;
 	
 	speechRecognizer.defaultTaskHint = useFreeFormLanguageModel ? SFSpeechRecognitionTaskHintDictation : SFSpeechRecognitionTaskHintSearch;
 	recognitionRequest.shouldReportPartialResults = YES;
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 130000
 	if( @available(iOS 13.0, *) )
 	{
 		if( preferOfflineRecognition )
 			recognitionRequest.requiresOnDeviceRecognition = YES;
 	}
-#endif
 	
 	recognitionTaskErrorCode = 5;
 	recognitionTask = [speechRecognizer recognitionTaskWithRequest:recognitionRequest resultHandler:^( SFSpeechRecognitionResult *result, NSError *error )
@@ -192,52 +185,38 @@ static float audioRmsdB;
 
 + (void)stop
 {
-	if( @available(iOS 10.0, *) )
+	if( audioEngine != nil && audioEngine.isRunning )
 	{
-		if( audioEngine != nil && audioEngine.isRunning )
-		{
-			[audioEngine stop];
-			[recognitionRequest endAudio];
-		}
+		[audioEngine stop];
+		[recognitionRequest endAudio];
 	}
 }
 
 + (void)cancel:(BOOL)isCanceledByUser
 {
-	if( @available(iOS 10.0, *) )
+	if( recognitionTask != nil )
 	{
-		if( recognitionTask != nil )
-		{
-			if( isCanceledByUser )
-				recognitionTaskErrorCode = 0;
+		if( isCanceledByUser )
+			recognitionTaskErrorCode = 0;
 			
-			[recognitionTask cancel];
-			recognitionTask = nil;
-		}
+		[recognitionTask cancel];
+		recognitionTask = nil;
 	}
 }
 
 + (int)isLanguageSupported:(NSString *)language
 {
-	if( @available(iOS 10.0, *) )
-		return [[SFSpeechRecognizer supportedLocales] containsObject:[NSLocale localeWithLocaleIdentifier:language]] ? 1 : 0;
-	
-	return 0;
+	return [[SFSpeechRecognizer supportedLocales] containsObject:[NSLocale localeWithLocaleIdentifier:language]] ? 1 : 0;
 }
 
 + (int)isServiceAvailable:(BOOL)preferOfflineRecognition
 {
-	if( @available(iOS 10.0, *) )
+	if( speechRecognizer != nil && [speechRecognizer isAvailable] )
 	{
-		if( speechRecognizer != nil && [speechRecognizer isAvailable] )
-		{
-			if( !preferOfflineRecognition )
-				return 1;
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 130000
-			else if( @available(iOS 13.0, *) )
-				return [speechRecognizer supportsOnDeviceRecognition] ? 1 : 0;
-#endif
-		}
+		if( !preferOfflineRecognition )
+			return 1;
+		else if( @available(iOS 13.0, *) )
+			return [speechRecognizer supportsOnDeviceRecognition] ? 1 : 0;
 	}
 	
 	return 0;
@@ -245,10 +224,7 @@ static float audioRmsdB;
 
 + (int)isBusy
 {
-	if( @available(iOS 10.0, *) )
-		return ( recognitionRequest != nil ) ? 1 : 0;
-	
-	return 0;
+	return ( recognitionRequest != nil ) ? 1 : 0;
 }
 
 + (float)getAudioRmsdB
@@ -258,17 +234,14 @@ static float audioRmsdB;
 
 + (int)checkPermission
 {
-	if( @available(iOS 10.0, *) )
-	{
-		int speechRecognitionPermission = [self checkSpeechRecognitionPermission];
-		int microphonePermission = [self checkMicrophonePermission];
-		if( speechRecognitionPermission == 1 && microphonePermission == 1 )
-			return 1;
-		else if( speechRecognitionPermission != 0 && microphonePermission != 0 )
-			return 2;
-	}
-	
-	return 0;
+	int speechRecognitionPermission = [self checkSpeechRecognitionPermission];
+	int microphonePermission = [self checkMicrophonePermission];
+	if( speechRecognitionPermission == 1 && microphonePermission == 1 )
+		return 1;
+	else if( speechRecognitionPermission != 0 && microphonePermission != 0 )
+		return 2;
+	else
+		return 0;
 }
 
 + (int)checkSpeechRecognitionPermission
@@ -284,7 +257,6 @@ static float audioRmsdB;
 
 + (int)checkMicrophonePermission
 {
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 170000
 	if( @available(iOS 17.0, *) )
 	{
 		AVAudioApplicationRecordPermission status = [[AVAudioApplication sharedInstance] recordPermission];
@@ -294,7 +266,6 @@ static float audioRmsdB;
 			return 2;
 	}
 	else
-#endif
 	{
 		AVAudioSessionRecordPermission status = [[AVAudioSession sharedInstance] recordPermission];
 		if( status == AVAudioSessionRecordPermissionGranted )
@@ -319,7 +290,6 @@ static float audioRmsdB;
 	[SFSpeechRecognizer requestAuthorization:^( SFSpeechRecognizerAuthorizationStatus status )
 	{
 		// Request Microphone permission immediately afterwards
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 170000
 		// For some reason, requestRecordPermissionWithCompletionHandler function couldn't be found in AVAudioApplication while writing this code. Uncomment when it's fixed by Apple.
 		/*if( @available(iOS 17.0, *) )
 		{
@@ -329,7 +299,6 @@ static float audioRmsdB;
 			}];
 		}
 		else*/
-#endif
 		{
 			[[AVAudioSession sharedInstance] requestRecordPermission:^( BOOL granted )
 			{
@@ -341,18 +310,10 @@ static float audioRmsdB;
 	return -1;
 }
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 + (void)openSettings
 {
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 100000
-	if( @available(iOS 10.0, *) )
-		[[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString] options:@{} completionHandler:nil];
-	else
-#endif
-		[[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString] options:@{} completionHandler:nil];
 }
-#pragma clang diagnostic pop
 
 // Credit: https://stackoverflow.com/a/37052118/2373034
 + (char *)getCString:(NSString *)source

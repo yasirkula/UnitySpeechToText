@@ -35,6 +35,12 @@ There are two ways to set up the plugin on iOS:
 
 - Speech session returned [error code 12](https://developer.android.com/reference/android/speech/SpeechRecognizer#ERROR_LANGUAGE_NOT_SUPPORTED) on a single Android test device (regardless of target language) and couldn't be started
 
+## FAQ
+
+- **Android build fails with error message "D8: java.lang.NullPointerException Failed to transform SpeechToText-.aar"**
+
+The plugin is using "Gradle version" `7.5.1` and "Android Gradle plug-in version" `7.4.2`. Make sure your Unity version is compatible: https://docs.unity3d.com/2021.3/Documentation/Manual/android-gradle-overview.html
+
 ## HOW TO
 
 **NOTE:** The codebase is documented using XML comments so this section will only briefly mention the functions.

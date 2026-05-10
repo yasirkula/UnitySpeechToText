@@ -1,16 +1,28 @@
 ﻿#if UNITY_EDITOR || UNITY_ANDROID
+using System;
 using UnityEngine;
 
 namespace SpeechToTextNamespace
 {
 	public class STTCallbackHelper : MonoBehaviour
 	{
-		private bool autoDestroy;
-		private System.Action mainThreadAction = null;
+		private bool autoDestroyWithCallback;
+		private Action mainThreadAction = null;
 
-		private void Awake()
+		public static STTCallbackHelper Create( bool autoDestroyWithCallback )
 		{
-			DontDestroyOnLoad( gameObject );
+			STTCallbackHelper result = new GameObject( "STTCallbackHelper" ).AddComponent<STTCallbackHelper>();
+			result.autoDestroyWithCallback = autoDestroyWithCallback;
+			DontDestroyOnLoad( result.gameObject );
+			return result;
+		}
+
+		public void CallOnMainThread( Action function )
+		{
+			lock( this )
+			{
+				mainThreadAction += function;
+			}
 		}
 
 		private void Update()
@@ -19,32 +31,20 @@ namespace SpeechToTextNamespace
 			{
 				try
 				{
+					Action temp;
 					lock( this )
 					{
-						System.Action temp = mainThreadAction;
+						temp = mainThreadAction;
 						mainThreadAction = null;
-						temp();
 					}
+
+					temp();
 				}
 				finally
 				{
-					if( autoDestroy )
+					if( autoDestroyWithCallback )
 						Destroy( gameObject );
 				}
-			}
-		}
-
-		public STTCallbackHelper AutoDestroy()
-		{
-			autoDestroy = true;
-			return this;
-		}
-
-		public void CallOnMainThread( System.Action function )
-		{
-			lock( this )
-			{
-				mainThreadAction += function;
 			}
 		}
 	}
